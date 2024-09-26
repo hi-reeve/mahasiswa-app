@@ -11,7 +11,8 @@ type Props = {
 	mode?: "create" | "detail";
 	id?: string;
 };
-const { mode, id } = defineProps<Props>();
+const props = defineProps<Props>();
+const { id, mode } = toRefs(props);
 const open = defineModel<boolean>("open", { required: true });
 
 const isEdit = ref<boolean>(false);
@@ -21,8 +22,12 @@ const validationSchema = computed(() =>
 		: toTypedSchema(studentCreateSchema)
 );
 
+const { handleSubmit, resetForm, setValues } = useForm({
+	validationSchema,
+});
+
 const { data: student, refresh } = useFetch<Student>(
-	() => `/api/student/${id}`,
+	() => `/api/student/${id.value}`,
 	{
 		immediate: false,
 	}
@@ -34,6 +39,7 @@ const { loading: loadingCreate, mutate: mutateCreate } =
 		{
 			onSuccess: async () => {
 				toast.success("Data mahasiswa berhasil ditambahkan");
+
 				open.value = false;
 			},
 			onError: error => {
@@ -52,6 +58,7 @@ const { loading: loadingUpdate, mutate: mutateUpdate } = useMutation<{
 		onSuccess: async () => {
 			toast.success("Data mahasiswa berhasil diubah");
 			await refresh();
+
 			isEdit.value = false;
 		},
 		onError: error => {
@@ -61,32 +68,45 @@ const { loading: loadingUpdate, mutate: mutateUpdate } = useMutation<{
 );
 
 const titleText = computed(() => {
-	if (mode === "create") return "Tambah data Mahasiswa";
-	if (mode === "detail" && isEdit.value) return "Ubah data Mahasiswa";
+	if (mode.value === "create") return "Tambah data Mahasiswa";
+	if (mode.value === "detail" && isEdit.value) return "Ubah data Mahasiswa";
 	return student.value?.name;
 });
-const onSubmit = (value: unknown) => {
-	if (mode === "create") mutateCreate(value as CreateStudentDto);
+const onSubmit = handleSubmit(value => {
+	if (mode.value === "create") mutateCreate(value as CreateStudentDto);
 
-	if (mode === "detail" && isEdit.value)
+	if (mode.value === "detail" && isEdit.value)
 		mutateUpdate({
 			id: student.value?.id as string,
 			payload: value as UpdateStudentDto,
 		});
-};
+});
 
 const handleEdit = () => {
 	isEdit.value = true;
 };
 
 const handleCancel = () => {
-	if (mode === "create") open.value = false;
+	if (mode.value === "create") open.value = false;
 	else isEdit.value = false;
 };
 
 watch(open, current => {
 	if (!current) {
 		isEdit.value = false;
+		resetForm();
+	}
+});
+
+watchEffect(() => {
+	if (open.value && mode.value === "detail" && student.value) {
+		setValues({
+			address: student.value.address,
+			email: student.value.email,
+			name: student.value.name,
+			nrp: student.value.nrp,
+			dob: student.value.dob,
+		} as UpdateStudentDto);
 	}
 });
 </script>
@@ -105,19 +125,12 @@ watch(open, current => {
 				:student="student"
 				@edit="handleEdit"
 			/>
-			<Form
+			<form
 				v-if="mode === 'create' || (mode === 'detail' && isEdit)"
 				id="studentForm"
-				v-slot="{ submitForm, setValues }"
-				:validation-schema="validationSchema"
 				@submit="onSubmit"
 			>
-				<StudentForm
-					:is-edit="isEdit"
-					:submit-form="submitForm"
-					:set-values="setValues"
-					:student="student"
-				/>
+				<StudentForm :is-edit="isEdit" :student="student" />
 				<DialogFooter class="mt-8">
 					<Button
 						type="button"
@@ -138,7 +151,7 @@ watch(open, current => {
 						Simpan Data Mahasiswa
 					</Button>
 				</DialogFooter>
-			</Form>
+			</form>
 		</DialogContent>
 	</Dialog>
 </template>

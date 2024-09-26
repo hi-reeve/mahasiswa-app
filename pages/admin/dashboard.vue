@@ -132,6 +132,13 @@ const onCreate = () => {
 	modalState.mode = "create";
 	modalState.selectedStudent = undefined;
 };
+
+watch(
+	() => modalState.open,
+	current => {
+		if (!current) refresh();
+	}
+);
 </script>
 
 <template>

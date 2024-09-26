@@ -4,41 +4,20 @@ import { type MaskInputOptions } from "maska";
 import type { Student } from "~/types/student";
 type Props = {
 	isEdit?: boolean;
-	submitForm: () => void;
-	setValues: (value: any) => void;
 	student?: Student | null;
 };
 
-const { isEdit = false, submitForm, student, setValues } = defineProps<Props>();
+const { isEdit = false, student } = defineProps<Props>();
 
 const maxDate = dateToDateValue(new Date());
 const nrpMaskOptions = reactive<MaskInputOptions>({
 	mask: "############",
 	eager: true,
 });
-
-watch(
-	() => isEdit,
-	() => {
-		if (student) {
-			setValues({
-				address: student.address,
-				email: student.email,
-				name: student.name,
-				nrp: student.nrp,
-				dob: student.dob,
-			});
-		}
-	},
-	{
-		deep: true,
-		immediate: true,
-	}
-);
 </script>
 
 <template>
-	<form class="space-y-4" @submit.prevent="submitForm">
+	<div class="space-y-4">
 		<FormField v-slot="{ componentField }" name="nrp">
 			<FormItem>
 				<FormLabel>NRP</FormLabel>
@@ -103,5 +82,5 @@ watch(
 					: undefined
 			"
 		/>
-	</form>
+	</div>
 </template>
