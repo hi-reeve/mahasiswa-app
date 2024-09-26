@@ -1,17 +1,17 @@
 import { UserLogin } from "~/types/user";
-import { compare, hash } from "bcrypt";
+import { compare } from "bcrypt";
 import { getUserByEmailPassword } from "~/server/db/models/user";
 export default defineEventHandler(async event => {
 	try {
 		const { email, password } = await readBody<UserLogin>(event);
 
-		const hashedPassword = await hash(password, 12);
-
 		const user = await getUserByEmailPassword({
 			email,
 		});
 
-		if (!user || !compare(hashedPassword, user.password))
+		const isValid = await compare(password, user.password);
+
+		if (!user || !isValid)
 			throw createError({
 				statusCode: 401,
 				statusMessage: "Invalid email or password",
